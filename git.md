@@ -320,7 +320,11 @@ git merge hotfix
     
     ![d3](E:\资料笔记\git\delete3.png)
 
+### git的三个区域：
 
+- **Working Tree** 当前的工作区域
+- **Index/Stage** 暂存区域，和git stash命令暂存的地方不一样。使用git add xx，就可以将xx添加近Stage里面
+- **Repository** 提交的历史，即使用git commit提交后的结果（快照，也即head，通常，理解 head的最简方式，就是将它看做 **该分支上的最后一次提交** 的快照。）
 
 ### 基础命令
 
