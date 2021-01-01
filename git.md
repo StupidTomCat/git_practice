@@ -320,7 +320,124 @@ git merge hotfix
     
     ![d3](E:\资料笔记\git\delete3.png)
 
+### git的三个区域：
 
+- **Working Tree** 当前的工作区域
+- **Index/Stage** 暂存区域，和git stash命令暂存的地方不一样。使用git add xx，就可以将xx添加近Stage里面
+- **Repository** 提交的历史，即使用git commit提交后的结果（快照，也即head，通常，理解 head的最简方式，就是将它看做 **该分支上的最后一次提交** 的快照。）
+
+1. `git reset`主要作用
+
+   1)`git reset --soft HEAD~`
+
+   `reset` 做的第一件事是移动 HEAD 的指向。如果 HEAD 设置为 `master` 分支（例如，你正在 `master` 分支上）， 运行 `git reset 9e5e6a4` 将会使 `master` 指向 `9e5e6a4`，前面有v1，v2两次提交的历史，如下图：
+
+   ![reset](E:\资料笔记\git\reset1.png)
+
+   使用 `reset --soft`，它将仅仅停在那儿（应该是什么也不做的意思），`HEAD~`（HEAD 的父结点），暂存区(Index)和工作目录不会改变。**==它本质上是撤销了上一次 `git commit` 命令。==**
+
+   关于head：
+
+   - HEAD 表示当前版本(应该是上次的提交位置，检验和那儿)
+   - HEAD^ 上一个版本
+   - HEAD^^ 上上一个版本
+   - HEAD^^^ 上上上一个版本
+   - 以此类推...
+
+   可以使用 ～数字表示
+
+   - HEAD~0 表示当前版本
+   - HEAD~1 上一个版本    HEAD~1`指回退一个快照，可以简写为`HEAD~
+   - HEAD^2 上上一个版本
+   - HEAD^3 上上上一个版本
+   - 以此类推...
+
+   2)`git reset --mixed HEAD~`  (git  reset默认添加mixed参数)
+
+   接下来，`reset` 会用 HEAD 指向的当前快照的内容来更新暂存区。
+
+   ![reset2](E:\资料笔记\git\reset2.png)
+
+   `--mixed` 选项，`reset` 将会在这时停止。 这也是默认行为，所以如果没有指定任何选项（在本例中只是 `git reset HEAD~`），这就是命令将会停止的地方。
+
+   现在再看一眼上图，理解一下发生的事情：它依然会撤销一上次 `提交`，但还会 *取消暂存* 所有的东西。 于是，我们**==回滚到了所有 `git add` 和 `git commit` 的命令执行之前。==**
+
+   3)`git reset --hard HEAD~`
+
+   ​	将暂存区的内容更新到工作目录， 如果使用 `--hard` 选项，它将会继续这一步。
+
+   ![reset3](E:\资料笔记\git\reset3.png)
+
+   现在的情况是撤销了git add` 和 `git commit` 命令以及**工作目录**中的所有工作。
+
+   ps：`--hard` 标记是 `reset` 命令唯一的危险用法，它也是 Git 会真正地销毁数据的仅有的几个操作之一。 其他任何形式的 `reset` 调用都可以轻松撤消，但是 `--hard` 选项不能，因为它强制覆盖了工作目录中的文件。 在这种特殊情况下，我们的 Git 数据库(git repository)中的一个提交内还留有该文件的 **v3** 版本， 我们可以通过 `reflog` 来找回它。但是若该文件还未提交，Git 仍会覆盖它从而导致无法恢复。
+
+2. `git reset`的作用2（通过路径来重置）
+
+   head应该不是上文的head了
+
+   1) `git reset file.txt` （这其实是 `git reset --mixed HEAD file.txt` 的简写形式，head指的是上一次提交的快照)
+
+   ![rp1](E:\资料笔记\git\reset-path1.png)
+
+   作用与`git add`效果相反
+
+   2) `git reset eb43bf file.txt` 
+
+   不让 Git 从 HEAD 拉取数据，而是通过具体指定一个提交来拉取该文件的对应版本。
+
+   ![rp2](E:\资料笔记\git\reset-path2.png)
+
+3. `git reset`的作用3（压缩）（了解）
+
+   项目中，第一次提交中有一个文件，第二次提交增加了一个新的文件并修改了第一个文件，第三次提交再次修改了第一个文件。 由于第二次提交是一个未完成的工作，因此想要压缩它。
+
+   <img src="E:\资料笔记\git\reset压缩1.png" alt="r压缩1" style="zoom:80%;" />
+
+   运行 `git reset --soft HEAD~2` 来将 HEAD 分支移动到一个旧一点的提交上（即你想要保留的最近的提交）：
+
+   <img src="E:\资料笔记\git\reset压缩2.png" alt="r压缩2" style="zoom:80%;" />
+
+   然后只需再次运行 `git commit`：
+
+   <img src="E:\资料笔记\git\reset压缩3.png" alt="r压缩3" style="zoom:80%;" />
+
+   查看历史，看起来有个 v1 版 `file-a.txt` 的提交， 接着第二个提交将 `file-a.txt` 修改成了 v3 版并增加了 `file-b.txt`。 包含 v2 版本的文件已经不在历史中了。
+
+   ps：commit命令也有压缩
+
+4. `reset` 与`checkout`的区别
+
+   1)不带路径
+
+   运行 `git checkout [branch]` 与运行 `git reset --hard [branch]` 非常相似，它会更新所有三个区域使其看起来像 `[branch]`，不过有两点重要的区别。
+
+   首先不同于 `reset --hard`，**==`checkout` 对工作目录是安全的，它会通过检查来确保不会将已更改的文件弄丢。==** 其实它还更聪明一些。它会在工作目录中先试着简单合并一下，这样所有_还未修改过的_文件都会被更新。 ==**而 `reset --hard` 则会不做检查就全面地替换所有东西。**==
+
+   第二个重要的区别是 `checkout` 如何更新 HEAD。 ==**`reset` 会移动 HEAD 分支的指向，而 `checkout` 只会移动 HEAD 自身来指向另一个分支。**==
+
+   例如，假设我们有 `master` 和 `develop` 分支，它们分别指向不同的提交；我们现在在 `develop` 上（所以 HEAD 指向它）。 如果我们运行 `git reset master`，那么 `develop` 自身现在会和 `master` 指向同一个提交。 而如果我们运行 `git checkout master` 的话，`develop` 不会移动，HEAD 自身会移动。 现在 HEAD 将会指向 `master`。
+
+   <img src="E:\资料笔记\git\reset-checkout.png" alt="rc" style="zoom:80%;" />
+
+   2)带路径
+
+   运行 `checkout` 的另一种方式就是指定一个文件路径，这会像 `reset` 一样不会移动 HEAD。 它就像 `git reset [提交的检验和] file` 那样用该次提交中的那个文件来更新暂存区，但是它也会覆盖工作目录中对应的文件。 它就像是 `git reset --hard [提交的检验和] file`， 这样对工作目录并不安全，它也不会移动 HEAD。
+
+5. 小结
+
+   下面的速查表列出了命令对区域的影响。 “HEAD” 一列中的 “REF” 表示该命令移动了 HEAD 指向的分支引用（指向一个提交的检验和），而 “HEAD” 则表示只移动了 HEAD 自身。 特别注意 *WD Safe?* 一列——如果它标记为 **NO**，那么运行该命令之前请考虑一下。
+
+   |                             | HEAD | Index | Workdir | WD Safe? |
+   | :-------------------------- | :--- | :---- | :------ | :------- |
+   | **Commit Level**            |      |       |         |          |
+   | `reset --soft [commit]`     | REF  | NO    | NO      | YES      |
+   | `reset [commit]`            | REF  | YES   | NO      | YES      |
+   | `reset --hard [commit]`     | REF  | YES   | YES     | **NO**   |
+   | `checkout <commit>`         | HEAD | YES   | YES     | YES      |
+   | **File Level**              |      |       |         |          |
+   | `reset [commit] <paths>`    | NO   | YES   | NO      | YES      |
+   | `checkout [commit] <paths>` | NO   | YES   | YES     | **NO**   |
 
 ### 基础命令
 
@@ -482,9 +599,27 @@ git merge hotfix
 
    提交后发现忘记了暂存某些需要的修改,加一句add，然后使用--amend，最终只会有一个提交——第二次提交将代替第一次提交的结果。
 
-2. 取消暂存的文件
+2. 取消暂存的文件(在暂存区的文件)
 
    `git reset HEAD 文件名`
+   
+   执行 git reset HEAD 以取消之前 git add 添加，但不希望包含在下一提交快照中的缓存。
+   
+   不加文件则会取消所有暂存区的文件
+   
+   <img src="E:\资料笔记\git\git_reset_head.png" alt="gsh" style="zoom:80%;" />
+   
+3. 需求做了一半告诉你需求有变化，不再做了，如果你此时还没有进行commit
+
+    `git reset --hard `
+
+   这会直接删除工作目录的文件（是个狠人）：
+
+   <img src="E:\资料笔记\git\git_reset_hard.png" alt="grha1" style="zoom:80%;" />
+
+   <img src="E:\资料笔记\git\git_reset_hard3.png" alt="grha3" style="zoom:80%;" />
+
+   <img src="E:\资料笔记\git\git_reset_hard2.png" alt="grha2" style="zoom:80%;" />
 
 ### 远程仓库的使用
 
